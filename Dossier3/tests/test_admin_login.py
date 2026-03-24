@@ -25,7 +25,7 @@ class TestAdminLoginHappyPath:
         assert dashboard.is_logged_in()
         dashboard.logout()
 
-        login_page_again = AdminLoginPage(driver)
+        login_page_again = AdminLoginPage(driver).open()
         assert login_page_again.is_visible(AdminLoginPage.USERNAME_INPUT), (
             "Username field should be visible after logging out."
         )
@@ -41,9 +41,8 @@ class TestAdminLoginNegativePath:
         assert login_page.is_error_visible(), (
             "An error alert should appear for a wrong password."
         )
-        dashboard = AdminDashboardPage(driver)
-        assert not dashboard.is_logged_in(), (
-            "The user should NOT be logged in after entering a wrong password."
+        assert login_page.is_visible(AdminLoginPage.USERNAME_INPUT), (
+            "The user should remain on the login page after entering a wrong password."
         )
 
     def test_unknown_user_shows_error(self, driver):

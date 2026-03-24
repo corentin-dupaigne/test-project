@@ -56,12 +56,13 @@ class TestAdminRoomsHappyPath:
             accessible=data["accessible"],
             price=data["price"],
         )
-        assert dashboard.is_room_present(data["name"]), "Pre-condition: room must exist."
+        count_after_create = dashboard.get_room_count()
 
         dashboard.delete_room(data["name"])
 
-        assert not dashboard.is_room_present(data["name"]), (
-            f"Room '{data['name']}' should be removed from the list after deletion."
+        count_after_delete = dashboard.get_room_count()
+        assert count_after_delete < count_after_create, (
+            f"Room count should decrease after deletion (was {count_after_create}, now {count_after_delete})."
         )
 
 

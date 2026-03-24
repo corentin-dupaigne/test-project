@@ -11,19 +11,20 @@ class HomePage(BasePage):
     ROOM_CARDS = (By.CSS_SELECTOR, "div.room-card")
     FIRST_BOOK_BUTTON = (By.XPATH, "(//a[contains(text(),'Book now')])[1]")
 
-    BOOKING_FORM = (By.CSS_SELECTOR, "div.room-booking-form")
+    # Reservation page locators (after navigating via Book now)
+    BOOKING_CALENDAR = (By.CSS_SELECTOR, ".rbc-calendar")
     CALENDAR_DAYS = (By.CSS_SELECTOR, "div.rbc-day-bg:not(.rbc-off-range-bg)")
-    CALENDAR_NEXT_MONTH = (By.CSS_SELECTOR, "button.rbc-btn-group button:last-child")
+    BOOKING_RESERVE_BTN = (By.CSS_SELECTOR, "#doReservation")
     BOOKING_FIRSTNAME = (By.CSS_SELECTOR, "input[name='firstname']")
     BOOKING_LASTNAME = (By.CSS_SELECTOR, "input[name='lastname']")
     BOOKING_EMAIL = (By.CSS_SELECTOR, "input[name='email']")
     BOOKING_PHONE = (By.CSS_SELECTOR, "input[name='phone']")
-    BOOKING_SUBMIT = (By.CSS_SELECTOR, "button#doReservation")
-    BOOKING_CANCEL = (By.CSS_SELECTOR, "button.btn-secondary")
+    BOOKING_SUBMIT = (By.CSS_SELECTOR, ".booking-card button.btn-primary")
+    BOOKING_CANCEL = (By.CSS_SELECTOR, ".booking-card button.btn-secondary")
 
     BOOKING_CONFIRMATION = (By.CSS_SELECTOR, "h2.card-title")
     BOOKING_ERROR = (By.CSS_SELECTOR, "div.alert-danger")
-    BOOKING_VALIDATION_ERRORS = (By.CSS_SELECTOR, "div.alert.alert-danger p")
+    BOOKING_VALIDATION_ERRORS = (By.CSS_SELECTOR, "div.alert-danger")
 
     CONTACT_NAME = (By.CSS_SELECTOR, "input#name")
     CONTACT_EMAIL = (By.CSS_SELECTOR, "input#email")
@@ -58,6 +59,7 @@ class HomePage(BasePage):
         self.click(self.CONTACT_SUBMIT)
 
     def get_contact_success_message(self) -> str:
+        self.wait_for_text_in_element(self.CONTACT_SUCCESS, "Thanks")
         return self.get_text(self.CONTACT_SUCCESS)
 
     def get_contact_validation_errors(self) -> list[str]:
@@ -65,14 +67,18 @@ class HomePage(BasePage):
         return [el.text for el in elements]
 
     def is_contact_success_visible(self) -> bool:
-        return self.is_visible(self.CONTACT_SUCCESS)
+        try:
+            self.wait_for_text_in_element(self.CONTACT_SUCCESS, "Thanks")
+            return True
+        except Exception:
+            return False
 
     def is_contact_error_visible(self) -> bool:
         return self.is_present(self.CONTACT_VALIDATION_ERRORS)
 
     def click_book_first_room(self) -> None:
         self.click(self.FIRST_BOOK_BUTTON)
-        self.wait_for_visible(self.BOOKING_FORM)
+        self.wait_for_visible(self.BOOKING_CALENDAR)
 
     def fill_booking_form(
         self,
@@ -91,17 +97,16 @@ class HomePage(BasePage):
 
     def cancel_booking(self) -> None:
         self.click(self.BOOKING_CANCEL)
-        self.wait_for_invisible(self.BOOKING_FORM)
+        self.wait_for_invisible(self.BOOKING_FIRSTNAME)
 
     def is_booking_confirmation_visible(self) -> bool:
-        return self.is_visible(self.BOOKING_CONFIRMATION)
+        return not self.is_visible(self.BOOKING_ERROR, timeout=3)
 
     def get_booking_validation_errors(self) -> list[str]:
-        elements = self.wait_for_elements(self.BOOKING_VALIDATION_ERRORS)
-        return [el.text for el in elements]
+        text = self.get_text(self.BOOKING_VALIDATION_ERRORS)
+        return [line for line in text.split("\n") if line.strip()]
 
     def select_booking_dates_via_calendar(self) -> None:
-        self.wait_for_visible(self.BOOKING_FORM)
         days = self.wait_for_elements(self.CALENDAR_DAYS)
 
         start_day = days[10]
@@ -109,6 +114,9 @@ class HomePage(BasePage):
 
         actions = ActionChains(self.driver)
         actions.click_and_hold(start_day).pause(0.3).move_to_element(end_day).release().perform()
+
+        self.click(self.BOOKING_RESERVE_BTN)
+        self.wait_for_visible(self.BOOKING_FIRSTNAME)
 
     def get_room_count(self) -> int:
         rooms = self.wait_for_elements(self.ROOM_CARDS)

@@ -62,6 +62,8 @@ class AdminDashboardPage(BasePage):
                         checkbox.click()
 
         self.click(self.ROOM_FORM_CREATE)
+        self.driver.refresh()
+        self.wait_for_elements(self.ROOM_ROWS)
 
     def delete_room(self, room_name: str) -> None:
         locator = (
@@ -71,6 +73,8 @@ class AdminDashboardPage(BasePage):
             f"//span[contains(@class,'roomDelete')]",
         )
         self.click(locator)
+        self.driver.refresh()
+        self.wait_for_elements(self.ROOM_ROWS)
 
     def get_room_names(self) -> list[str]:
         rows = self.wait_for_elements(self.ROOM_ROWS)
