@@ -1,0 +1,2109 @@
+{
+  "info": {
+    "_postman_id": "69911336-bac7-4454-ab8e-e46aaaed358a",
+    "name": "Dossier2_Automatisation_API_RestfulBookerPlatform",
+    "description": "## Collection de tests API - Projet Final QA\n\n### Plateforme : Restful-Booker Platform\n**URL** : https://automationintesting.online/\n\n### Architecture Microservices testée :\n- **Auth** : `/auth/login` - Authentification admin (génération token)\n- **Room** : `/room/` - CRUD des chambres\n- **Booking** : `/booking/` - CRUD des réservations\n- **Message** : `/message/` - Gestion des messages clients\n- **Branding** : `/branding/` - Configuration de la marque\n\n### Stratégie de la collection :\n1. **Authentification** → Génération et stockage dynamique du token\n2. **Flux Room** → Création, lecture, modification, suppression d'une chambre\n3. **Flux Booking** → Réservation complète (Happy Path + Negative Path)\n4. **Flux Message** → Envoi et gestion des messages\n5. **Tests de sécurité** → Accès non-autorisé, token invalide\n6. **Nettoyage (Teardown)** → Suppression des données de test\n\n### Exigences techniques couvertes :\n- ✅ Flux complets (token → CRUD → nettoyage)\n- ✅ Scripts de tests (assertions JS) : codes HTTP, temps de réponse, schéma JSON, valeurs\n- ✅ Chaînage dynamique de requêtes (variables d'environnement)\n- ✅ Couverture codes 2xx ET 4xx\n- ✅ Validation de schéma JSON\n- ✅ Variables d'environnement (aucune donnée hardcodée)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53310286",
+    "_collection_link": "https://go.postman.co/collection/53310286-69911336-bac7-4454-ab8e-e46aaaed358a?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "01 - Authentification",
+      "item": [
+        {
+          "name": "POST - Login Admin (Happy Path)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Pre-request : générer un timestamp pour tracer l'exécution",
+                  "pm.environment.set('test_timestamp', new Date().toISOString());"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Statut HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// --- Extraction du token depuis le body JSON ---",
+                  "pm.test('La réponse est au format JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "",
+                  "let jsonData;",
+                  "try {",
+                  "    jsonData = pm.response.json();",
+                  "} catch (e) {",
+                  "    jsonData = null;",
+                  "}",
+                  "",
+                  "pm.test('Le body contient un champ token (string non vide)', function () {",
+                  "    pm.expect(jsonData, 'Body JSON parsé').to.be.an('object');",
+                  "    pm.expect(jsonData).to.have.property('token');",
+                  "    pm.expect(jsonData.token).to.be.a('string').and.to.not.be.empty;",
+                  "});",
+                  "",
+                  "if (jsonData && typeof jsonData.token === 'string' && jsonData.token.trim().length > 0) {",
+                  "    pm.environment.set('auth_token', jsonData.token);",
+                  "}",
+                  "",
+                  "pm.test(\"Le token a été sauvegardé en variable d'environnement\", function () {",
+                  "    const savedToken = pm.environment.get('auth_token');",
+                  "    pm.expect(savedToken).to.be.a('string').and.to.not.be.empty;",
+                  "});",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"{{admin_username}}\",\n    \"password\": \"{{admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authentification avec les identifiants admin. Le token est extrait du header Set-Cookie et stocké en variable d'environnement `auth_token` pour chaînage dynamique."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Login avec mauvais mot de passe (Negative)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== TEST NÉGATIF : IDENTIFIANTS INVALIDES =====",
+                  "",
+                  "pm.test('Statut HTTP 403 Forbidden pour identifiants invalides', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "pm.test('Aucun token ne doit être retourné', function () {",
+                  "    const setCookie = pm.response.headers.get('Set-Cookie');",
+                  "    if (setCookie) {",
+                  "        pm.expect(setCookie).to.not.include('token=');",
+                  "    } else {",
+                  "        pm.expect(setCookie).to.be.undefined;",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"admin\",\n    \"password\": \"wrongpassword123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Test négatif : tentative de connexion avec un mot de passe incorrect. Attend un refus 403."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Login avec body vide (Negative)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== TEST NÉGATIF : BODY VIDE =====",
+                  "",
+                  "pm.test('Statut HTTP indique une erreur (4xx)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 403]);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Test négatif : envoi d'un body JSON vide pour vérifier la gestion d'erreur."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Validate Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== VALIDATION DU TOKEN =====",
+                  "",
+                  "pm.test('Statut HTTP 200 OK - Token valide', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token\": \"{{auth_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/validate",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "validate"
+              ]
+            },
+            "description": "Validation du token précédemment obtenu. Vérifie que le token est bien actif."
+          },
+          "response": []
+        }
+      ],
+      "description": "Flux d'authentification admin. Génération du token cookie pour les opérations protégées."
+    },
+    {
+      "name": "02 - Gestion des Rooms",
+      "item": [
+        {
+          "name": "GET - Lister toutes les chambres",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== LISTE DES CHAMBRES =====",
+                  "",
+                  "pm.test('Statut HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "pm.test('La réponse est un objet JSON avec un tableau rooms', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('rooms');",
+                  "    pm.expect(jsonData.rooms).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Au moins une chambre existe', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.rooms.length).to.be.greaterThan(0);",
+                  "});",
+                  "",
+                  "// Sauvegarder le premier room_id existant pour les tests de booking",
+                  "const jsonData = pm.response.json();",
+                  "if (jsonData.rooms && jsonData.rooms.length > 0) {",
+                  "    pm.environment.set('existing_room_id', jsonData.rooms[0].roomid);",
+                  "    console.log('Room ID existant sauvegardé : ' + jsonData.rooms[0].roomid);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/room/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "room",
+                ""
+              ]
+            },
+            "description": "Récupère la liste de toutes les chambres disponibles. Sauvegarde l'ID de la première chambre pour les tests suivants."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Créer une nouvelle chambre (Happy Path)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Génération dynamique du numéro de chambre pour éviter les doublons",
+                  "const roomNumber = Math.floor(Math.random() * 900) + 100;",
+                  "pm.environment.set('dynamic_room_number', roomNumber.toString());"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== CRÉATION DE CHAMBRE =====",
+                  "",
+                  "// L'API create-room retourne uniquement: { \"success\": true }",
+                  "// => on enchaîne un GET {{base_url}}/room/ pour retrouver l'ID de la dernière chambre créée",
+                  "",
+                  "pm.test('Statut HTTP est 200 ou 201', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "function safeJsonParse(str) {",
+                  "    try { return JSON.parse(str); } catch (e) { return null; }",
+                  "}",
+                  "",
+                  "function safeResponseJson() {",
+                  "    try { return pm.response.json(); } catch (e) { return null; }",
+                  "}",
+                  "",
+                  "function toNumberIfNumeric(val) {",
+                  "    if (typeof val === 'number') return val;",
+                  "    if (typeof val === 'string' && val.trim() !== '' && !isNaN(val)) return Number(val);",
+                  "    return null;",
+                  "}",
+                  "",
+                  "function getRoomsArray(listJson) {",
+                  "    // Supporte: { rooms: [...] } ou directement [...]",
+                  "    if (Array.isArray(listJson)) return listJson;",
+                  "    if (listJson && Array.isArray(listJson.rooms)) return listJson.rooms;",
+                  "    return null;",
+                  "}",
+                  "",
+                  "function pickLatestRoomId(roomsArray, preferredRoomName) {",
+                  "    if (!Array.isArray(roomsArray) || roomsArray.length === 0) return null;",
+                  "",
+                  "    const candidates = roomsArray",
+                  "        .map(r => ({",
+                  "            roomid: toNumberIfNumeric(r && r.roomid),",
+                  "            roomName: r && (r.roomName ?? r.roomname)",
+                  "        }))",
+                  "        .filter(r => r.roomid !== null);",
+                  "",
+                  "    if (candidates.length === 0) return null;",
+                  "",
+                  "    // Optionnel: si on retrouve roomName == dynamic_room_number, on privilégie cet ID",
+                  "    if (preferredRoomName !== undefined && preferredRoomName !== null && String(preferredRoomName) !== '') {",
+                  "        const matches = candidates.filter(r => String(r.roomName) === String(preferredRoomName));",
+                  "        if (matches.length > 0) {",
+                  "            return matches.reduce((max, r) => (r.roomid > max ? r.roomid : max), matches[0].roomid);",
+                  "        }",
+                  "    }",
+                  "",
+                  "    // Sinon: prendre l'ID numérique le plus élevé",
+                  "    return candidates.reduce((max, r) => (r.roomid > max ? r.roomid : max), candidates[0].roomid);",
+                  "}",
+                  "",
+                  "// --- Assertions sur la réponse create-room",
+                  "const createJson = safeResponseJson();",
+                  "",
+                  "pm.test('Réponse create-room contient success:true', function () {",
+                  "    pm.expect(createJson).to.be.an('object');",
+                  "    pm.expect(createJson).to.have.property('success', true);",
+                  "});",
+                  "",
+                  "// --- Comparaison des valeurs envoyées (sans hardcode)",
+                  "// NB: Comme l'API ne renvoie pas l'objet chambre, on valide au moins que le body est bien formé",
+                  "const sentBody = safeJsonParse(pm.request.body && pm.request.body.raw);",
+                  "pm.test('Le body envoyé est un JSON valide', function () {",
+                  "    pm.expect(sentBody).to.be.an('object');",
+                  "});",
+                  "",
+                  "// --- Fallback obligatoire: récupérer la liste des chambres et déterminer room_id",
+                  "const baseUrl = pm.variables.replaceIn('{{base_url}}');",
+                  "const listUrl = baseUrl.replace(/\\/+$/, '') + '/room/';",
+                  "const preferredRoomName = pm.variables.replaceIn('{{dynamic_room_number}}');",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: listUrl,",
+                  "    method: 'GET',",
+                  "    header: {",
+                  "        'Content-Type': 'application/json'",
+                  "    }",
+                  "}, function (err, res) {",
+                  "    pm.test('GET /room/ (fallback) sans erreur réseau', function () {",
+                  "        pm.expect(err).to.equal(null);",
+                  "    });",
+                  "",
+                  "    if (err || !res) return;",
+                  "",
+                  "    pm.test('GET /room/ (fallback) status 200', function () {",
+                  "        pm.expect(res.code).to.eql(200);",
+                  "    });",
+                  "",
+                  "    let listJson = null;",
+                  "    try { listJson = res.json(); } catch (e) { listJson = null; }",
+                  "",
+                  "    const roomsArray = getRoomsArray(listJson);",
+                  "    const latestId = pickLatestRoomId(roomsArray, preferredRoomName);",
+                  "",
+                  "    pm.test('Fallback: room_id déterminé depuis la liste', function () {",
+                  "        pm.expect(latestId).to.be.a('number');",
+                  "    });",
+                  "",
+                  "    if (latestId !== null && latestId !== undefined) {",
+                  "        pm.environment.set('room_id', String(latestId));",
+                  "    }",
+                  "});",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"roomName\": \"{{dynamic_room_number}}\",\n    \"type\": \"Single\",\n    \"accessible\": false,\n    \"description\": \"Please enter a description for this room\",\n    \"image\": \"https://www.mwtestconsultancy.co.uk/img/room1.jpg\",\n    \"roomPrice\": \"122\",\n    \"features\": [\n        \"WiFi\",\n        \"Refreshments\"\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/room/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "room",
+                ""
+              ]
+            },
+            "description": "Création d'une chambre Double avec WiFi, TV et Safe. L'ID est extrait et sauvegardé dynamiquement pour chaînage."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Récupérer la chambre créée par ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== LECTURE CHAMBRE PAR ID =====",
+                  "",
+                  "pm.test('Statut HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('L\\'ID de la chambre correspond', function () {",
+                  "    pm.expect(jsonData.roomid).to.eql(parseInt(pm.environment.get('room_id')));",
+                  "});",
+                  "",
+                  "pm.test('Le type de la chambre est correct', function () {",
+                  "    pm.expect(jsonData.type).to.eql('Single');",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/room/{{room_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "room",
+                "{{room_id}}"
+              ]
+            },
+            "description": "Récupère les détails de la chambre créée précédemment via son ID dynamique."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT - Modifier la chambre créée",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== MODIFICATION CHAMBRE =====",
+                  "",
+                  "pm.test('Statut HTTP 202 Accepted', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Le prix a été mis à jour à 150', function () {",
+                  "    pm.expect(jsonData.roomPrice).to.eql(150);",
+                  "});",
+                  "",
+                  "pm.test('La description a été mise à jour', function () {",
+                  "    pm.expect(jsonData.description).to.include('Mise à jour');",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"roomName\": \"{{room_id}}\",\n    \"type\": \"Suite\",\n    \"accessible\": true,\n    \"description\": \"Chambre Mise à jour - Test automatisé QA\",\n    \"image\": \"https://www.mwtestconsultancy.co.uk/img/room1.jpg\",\n    \"roomPrice\": 150,\n    \"features\": [\"WiFi\", \"TV\", \"Safe\", \"Mini Bar\", \"Views\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/room/{{room_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "room",
+                "{{room_id}}"
+              ]
+            },
+            "description": "Mise à jour de la chambre (type, prix, features). Vérifie que les nouvelles valeurs sont bien retournées."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Créer chambre sans authentification (Negative)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== TEST SÉCURITÉ : PAS DE TOKEN =====",
+                  "",
+                  "pm.test('Statut HTTP 403 Forbidden sans authentification', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"roomName\": \"999\",\n    \"type\": \"Single\",\n    \"accessible\": false,\n    \"description\": \"Test sans auth\",\n    \"image\": \"https://www.mwtestconsultancy.co.uk/img/room1.jpg\",\n    \"roomPrice\": 80,\n    \"features\": [\"WiFi\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/room/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "room",
+                ""
+              ]
+            },
+            "description": "Test de sécurité : tentative de création sans cookie d'authentification. Doit retourner 403."
+          },
+          "response": []
+        }
+      ],
+      "description": "CRUD complet sur les chambres. Démonstration du chaînage dynamique : l'ID de la chambre créée est réutilisé dans les requêtes suivantes."
+    },
+    {
+      "name": "03 - Flux Booking Complet",
+      "item": [
+        {
+          "name": "GET - Lister les bookings d'une chambre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== LISTE BOOKINGS PAR ROOM =====",
+                  "",
+                  "pm.test('Statut HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('La réponse est un objet JSON avec un tableau bookings', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('bookings');",
+                  "    pm.expect(jsonData.bookings).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "packages": {},
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{auth_token}}",
+                "type": "text"
+              },
+              {
+                "key": "",
+                "value": "",
+                "type": "text",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/booking/?roomid={{room_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "roomid",
+                  "value": "{{room_id}}"
+                }
+              ]
+            },
+            "description": "Liste toutes les réservations pour la chambre créée précédemment."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Créer une réservation (Happy Path)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Génération dynamique des dates de séjour (dans 30 jours, durée 3 nuits)",
+                  "const checkin = new Date();",
+                  "checkin.setDate(checkin.getDate() + 30);",
+                  "const checkout = new Date(checkin);",
+                  "checkout.setDate(checkout.getDate() + 3);",
+                  "",
+                  "const formatDate = (d) => d.toISOString().split('T')[0];",
+                  "",
+                  "pm.environment.set('checkin_date', formatDate(checkin));",
+                  "pm.environment.set('checkout_date', formatDate(checkout));",
+                  "",
+                  "// Génération dynamique des données guest",
+                  "const firstnames = ['Jean', 'Marie', 'Pierre', 'Sophie', 'Luc'];",
+                  "const lastnames = ['Dupont', 'Martin', 'Bernard', 'Leroy', 'Moreau'];",
+                  "const firstname = firstnames[Math.floor(Math.random() * firstnames.length)];",
+                  "const lastname = lastnames[Math.floor(Math.random() * lastnames.length)];",
+                  "",
+                  "pm.environment.set('guest_firstname', firstname);",
+                  "pm.environment.set('guest_lastname', lastname);",
+                  "pm.environment.set('guest_email', firstname.toLowerCase() + '.' + lastname.toLowerCase() + '@test.com');",
+                  "",
+                  "console.log('Dates générées : ' + formatDate(checkin) + ' → ' + formatDate(checkout));",
+                  "console.log('Guest : ' + firstname + ' ' + lastname);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== CRÉATION RÉSERVATION - HAPPY PATH =====",
+                  "",
+                  "pm.test('Statut HTTP 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 5000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('La réponse contient un bookingid', function () {",
+                  "    pm.expect(jsonData).to.have.property('bookingid');",
+                  "    pm.expect(jsonData.bookingid).to.be.a('number');",
+                  "});",
+                  "",
+                  "pm.test('Validation du schéma JSON Booking', function () {",
+                  "    pm.expect(jsonData).to.have.property('booking');",
+                  "    const booking = jsonData.booking;",
+                  "    pm.expect(booking).to.have.property('firstname');",
+                  "    pm.expect(booking).to.have.property('lastname');",
+                  "    pm.expect(booking).to.have.property('depositpaid');",
+                  "    pm.expect(booking).to.have.property('bookingdates');",
+                  "    pm.expect(booking.bookingdates).to.have.property('checkin');",
+                  "    pm.expect(booking.bookingdates).to.have.property('checkout');",
+                  "});",
+                  "",
+                  "pm.test('Les données de la réservation correspondent à l\\'envoi', function () {",
+                  "    const booking = jsonData.booking;",
+                  "    pm.expect(booking.firstname).to.eql(pm.environment.get('guest_firstname'));",
+                  "    pm.expect(booking.lastname).to.eql(pm.environment.get('guest_lastname'));",
+                  "    pm.expect(booking.bookingdates.checkin).to.eql(pm.environment.get('checkin_date'));",
+                  "    pm.expect(booking.bookingdates.checkout).to.eql(pm.environment.get('checkout_date'));",
+                  "});",
+                  "",
+                  "// Chaînage dynamique : sauvegarder l'ID booking",
+                  "if (jsonData.bookingid) {",
+                  "    pm.environment.set('booking_id', jsonData.bookingid);",
+                  "    console.log('Booking ID sauvegardé : ' + jsonData.bookingid);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"roomid\": {{room_id}},\n    \"firstname\": \"{{guest_firstname}}\",\n    \"lastname\": \"{{guest_lastname}}\",\n    \"depositpaid\": true,\n    \"bookingdates\": {\n        \"checkin\": \"{{checkin_date}}\",\n        \"checkout\": \"{{checkout_date}}\"\n    },\n    \"email\": \"{{guest_email}}\",\n    \"phone\": \"020202020202\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                ""
+              ]
+            },
+            "description": "Création d'une réservation valide avec données dynamiques (dates futures, noms aléatoires). L'ID booking est chaîné dynamiquement."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Récupérer la réservation créée",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Statut HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('La réponse contient une réservation avec le bon bookingid', function () {",
+                  "    const expectedId = parseInt(pm.environment.get('booking_id'));",
+                  "    pm.expect(jsonData).to.have.property('bookings').that.is.an('array');",
+                  "    const found = jsonData.bookings.some(b => b.bookingid === expectedId);",
+                  "    pm.expect(found, `Aucune réservation trouvée avec bookingid ${expectedId}`).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/booking?roomid={{room_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking"
+              ],
+              "query": [
+                {
+                  "key": "roomid",
+                  "value": "{{room_id}}"
+                }
+              ]
+            },
+            "description": "Lecture de la réservation par son ID dynamique pour vérifier la persistance des données."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT - Modifier la réservation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== MODIFICATION BOOKING =====",
+                  "",
+                  "pm.test('Statut HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Le prénom a été mis à jour', function () {",
+                  "    pm.expect(jsonData.booking.firstname).to.eql('UpdatedName');",
+                  "});",
+                  "",
+                  "pm.test('Le deposit est passé à false', function () {",
+                  "    pm.expect(jsonData.booking.depositpaid).to.eql(false);",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Cookie",
+                "value": "token={{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"bookingid\": {{booking_id}},\n    \"roomid\": {{room_id}},\n    \"firstname\": \"UpdatedName\",\n    \"lastname\": \"{{guest_lastname}}\",\n    \"depositpaid\": false,\n    \"bookingdates\": {\n        \"checkin\": \"{{checkin_date}}\",\n        \"checkout\": \"{{checkout_date}}\"\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/{{booking_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{booking_id}}"
+              ]
+            },
+            "description": "Modification de la réservation : changement du prénom et du statut de dépôt."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Booking avec dates inversées (Negative)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== TEST NÉGATIF : CHECKOUT AVANT CHECKIN =====",
+                  "",
+                  "pm.test('L\\'API refuse ou signale des dates inversées', function () {",
+                  "    // L'API devrait retourner 409 Conflict ou 400 Bad Request",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 409, 500]);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 5000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "// Bug potentiel : si l'API accepte avec 201, c'est un défaut",
+                  "if (pm.response.code === 201) {",
+                  "    console.warn('⚠️ BUG DÉTECTÉ : L\\'API accepte une réservation avec checkout < checkin');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"roomid\": {{room_id}},\n    \"firstname\": \"Test\",\n    \"lastname\": \"Inversé\",\n    \"depositpaid\": true,\n    \"email\": \"test@inverse.com\",\n    \"phone\": \"0600000000\",\n    \"bookingdates\": {\n        \"checkin\": \"2026-12-25\",\n        \"checkout\": \"2026-12-20\"\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                ""
+              ]
+            },
+            "description": "Test négatif : date de checkout (20 déc) antérieure au checkin (25 déc). L'API devrait refuser la réservation."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Booking avec champs manquants (Negative)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== TEST NÉGATIF : CHAMPS OBLIGATOIRES MANQUANTS =====",
+                  "",
+                  "pm.test('L\\'API refuse le booking incomplet', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 500]);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 5000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    console.warn('⚠️ BUG DÉTECTÉ : L\\'API accepte un booking sans lastname ni dates');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"roomid\": {{room_id}},\n    \"firstname\": \"Test\",\n    \"depositpaid\": true,\n    \"email\": \"missing@fields.com\",\n    \"phone\": \"0600000000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                ""
+              ]
+            },
+            "description": "Test négatif : réservation sans lastname ni bookingdates. L'API devrait retourner une erreur de validation."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Booking sur dates déjà réservées (Negative)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== TEST NÉGATIF : DOUBLE RÉSERVATION (CONFLIT) =====",
+                  "",
+                  "pm.test('L\\'API refuse la double réservation', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([409, 400, 500]);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    console.warn('⚠️ BUG POTENTIEL : L\\'API accepte 2 réservations sur les mêmes dates et la même chambre');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"roomid\": {{room_id}},\n    \"firstname\": \"Conflit\",\n    \"lastname\": \"Doublon\",\n    \"depositpaid\": true,\n    \"email\": \"conflit@test.com\",\n    \"phone\": \"0611111111\",\n    \"bookingdates\": {\n        \"checkin\": \"{{checkin_date}}\",\n        \"checkout\": \"{{checkout_date}}\"\n    }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/booking/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                ""
+              ]
+            },
+            "description": "Test négatif : tentative de réserver les mêmes dates sur la même chambre que le booking précédent. Devrait être refusé (409 Conflict)."
+          },
+          "response": []
+        }
+      ],
+      "description": "Flux métier complet de réservation : création, lecture, modification et suppression. Inclut des cas positifs et négatifs."
+    },
+    {
+      "name": "04 - Gestion des Messages",
+      "item": [
+        {
+          "name": "POST - Envoyer un message (Happy Path)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== CRÉATION MESSAGE - HAPPY PATH =====",
+                  "",
+                  "pm.test('Statut HTTP est 200 ou 201', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "pm.test('La réponse est au format JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "// L'API peut retourner soit {messageid, name, ...} soit {success: true}",
+                  "// On gère les deux cas",
+                  "if (jsonData.messageid) {",
+                  "    // Cas idéal : l'API retourne l'objet message complet",
+                  "    pm.test('Le message contient un messageid (number)', function () {",
+                  "        pm.expect(jsonData.messageid).to.be.a('number');",
+                  "    });",
+                  "",
+                  "    pm.test('Validation complète du schéma JSON Message', function () {",
+                  "        pm.expect(jsonData).to.have.property('name').that.is.a('string');",
+                  "        pm.expect(jsonData).to.have.property('email').that.is.a('string');",
+                  "        pm.expect(jsonData).to.have.property('phone').that.is.a('string');",
+                  "        pm.expect(jsonData).to.have.property('subject').that.is.a('string');",
+                  "        pm.expect(jsonData).to.have.property('description').that.is.a('string');",
+                  "    });",
+                  "",
+                  "    pm.test('Les valeurs retournées correspondent aux données envoyées', function () {",
+                  "        pm.expect(jsonData.name).to.eql(pm.environment.get('msg_name'));",
+                  "        pm.expect(jsonData.email).to.eql(pm.environment.get('msg_email'));",
+                  "        pm.expect(jsonData.phone).to.eql(pm.environment.get('msg_phone'));",
+                  "        pm.expect(jsonData.subject).to.eql(pm.environment.get('msg_subject'));",
+                  "        pm.expect(jsonData.description).to.eql(pm.environment.get('msg_description'));",
+                  "    });",
+                  "",
+                  "    pm.environment.set('message_id', jsonData.messageid);",
+                  "    console.log('Message ID sauvegardé directement : ' + jsonData.messageid);",
+                  "",
+                  "} else {",
+                  "    // Cas réel de cette API : retourne {success: true} sans messageid",
+                  "    pm.test('Réponse create-message contient success:true (API ne retourne pas messageid)', function () {",
+                  "        pm.expect(jsonData).to.have.property('success', true);",
+                  "    });",
+                  "",
+                  "    // Fallback : GET /message/ pour récupérer le dernier message créé",
+                  "    const baseUrl = pm.variables.replaceIn('{{base_url}}');",
+                  "    const listUrl = baseUrl.replace(/\\/+$/, '') + '/message/';",
+                  "",
+                  "    pm.sendRequest({",
+                  "        url: listUrl,",
+                  "        method: 'GET',",
+                  "        header: {",
+                  "            'Cookie': 'token=' + pm.environment.get('auth_token')",
+                  "        }",
+                  "    }, function (err, res) {",
+                  "        pm.test('Fallback GET /message/ sans erreur réseau', function () {",
+                  "            pm.expect(err).to.equal(null);",
+                  "        });",
+                  "",
+                  "        pm.test('Fallback GET /message/ retourne 200', function () {",
+                  "            pm.expect(res.code).to.eql(200);",
+                  "        });",
+                  "",
+                  "        if (!err && res.code === 200) {",
+                  "            const listData = res.json();",
+                  "            const messages = listData.messages || [];",
+                  "",
+                  "            pm.test('Fallback : au moins un message existe dans la liste', function () {",
+                  "                pm.expect(messages.length).to.be.greaterThan(0);",
+                  "            });",
+                  "",
+                  "            if (messages.length > 0) {",
+                  "                // Prendre le message avec l'ID le plus élevé (le dernier créé)",
+                  "                const latestMsg = messages.reduce((max, m) => (m.id > max.id ? m : max), messages[0]);",
+                  "                pm.environment.set('message_id', latestMsg.id);",
+                  "                console.log('Message ID récupéré par fallback GET : ' + latestMsg.id);",
+                  "",
+                  "                pm.test('Fallback : message_id déterminé depuis la liste (ID: ' + latestMsg.id + ')', function () {",
+                  "                    pm.expect(latestMsg.id).to.be.a('number');",
+                  "                });",
+                  "            }",
+                  "        }",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Génération dynamique des données du message (zéro hardcoding)",
+                  "const names = ['Alice Dupont', 'Jean Martin', 'Sophie Bernard', 'Pierre Leroy', 'Luc Moreau'];",
+                  "const subjects = ['Question sur disponibilité', 'Demande de tarifs', 'Réservation groupe', 'Info accessibilité', 'Annulation demandée'];",
+                  "",
+                  "const randomName = names[Math.floor(Math.random() * names.length)];",
+                  "const randomSubject = subjects[Math.floor(Math.random() * subjects.length)];",
+                  "const randomEmail = randomName.toLowerCase().replace(/\\s+/g, '.').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '') + '@testqa.com';",
+                  "const randomPhone = '0033669098854';",
+                  "",
+                  "pm.environment.set('msg_name', randomName);",
+                  "pm.environment.set('msg_email', randomEmail);",
+                  "pm.environment.set('msg_phone', randomPhone);",
+                  "pm.environment.set('msg_subject', randomSubject);",
+                  "pm.environment.set('msg_description', 'Message automatisé envoyé le ' + new Date().toISOString() + '. Ceci est un test QA pour valider le flux complet de gestion des messages.');"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"{{msg_name}}\",\n    \"email\": \"{{msg_email}}\",\n    \"phone\": \"{{msg_phone}}\",\n    \"subject\": \"{{msg_subject}}\",\n    \"description\": \"{{msg_description}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/message/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "message",
+                ""
+              ]
+            },
+            "description": "Envoi d'un message de contact par un visiteur. Le messageid est chaîné pour lecture/suppression."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Lister les messages (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== LISTE MESSAGES ADMIN =====",
+                  "",
+                  "pm.test('Statut HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "pm.test('La réponse est au format JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('La réponse contient un tableau messages', function () {",
+                  "    pm.expect(jsonData).to.have.property('messages');",
+                  "    pm.expect(jsonData.messages).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Au moins un message existe', function () {",
+                  "    pm.expect(jsonData.messages.length).to.be.greaterThan(0);",
+                  "});",
+                  "",
+                  "pm.test('Validation du schéma de chaque message dans la liste', function () {",
+                  "    jsonData.messages.forEach(function (msg) {",
+                  "        pm.expect(msg).to.have.property('id').that.is.a('number');",
+                  "        pm.expect(msg).to.have.property('name').that.is.a('string');",
+                  "        pm.expect(msg).to.have.property('subject').that.is.a('string');",
+                  "        pm.expect(msg).to.have.property('read').that.is.a('boolean');",
+                  "    });",
+                  "});",
+                  "",
+                  "pm.test('Le message créé est présent dans la liste', function () {",
+                  "    const msgId = parseInt(pm.environment.get('message_id'));",
+                  "    const found = jsonData.messages.some(m => m.id === msgId);",
+                  "    pm.expect(found, 'Message ID ' + msgId + ' absent de la liste').to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/message/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "message",
+                ""
+              ]
+            },
+            "description": "Liste tous les messages côté admin. Requiert le cookie d'authentification."
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Compter les messages non lus",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== COMPTAGE MESSAGES NON LUS =====",
+                  "",
+                  "pm.test('Statut HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('La réponse est au format JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('La réponse contient un champ count (number >= 0)', function () {",
+                  "    pm.expect(jsonData).to.have.property('count');",
+                  "    pm.expect(jsonData.count).to.be.a('number');",
+                  "    pm.expect(jsonData.count).to.be.at.least(0);",
+                  "});",
+                  "",
+                  "pm.test('Au moins 1 message non lu existe (le nôtre)', function () {",
+                  "    pm.expect(jsonData.count).to.be.at.least(1);",
+                  "});",
+                  "",
+                  "// Sauvegarder le count pour comparaison après marquage comme lu",
+                  "pm.environment.set('msg_unread_count_before', jsonData.count);",
+                  "console.log('Messages non lus avant marquage : ' + jsonData.count);"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/message/count",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "message",
+                "count"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Lire un message spécifique (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== LECTURE MESSAGE PAR ID =====",
+                  "",
+                  "pm.test('Statut HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "pm.test('La réponse est au format JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('L\\'ID du message correspond à la variable chaînée', function () {",
+                  "    pm.expect(jsonData.messageid).to.eql(parseInt(pm.environment.get('message_id')));",
+                  "});",
+                  "",
+                  "pm.test('Validation complète du schéma JSON du message détaillé', function () {",
+                  "    pm.expect(jsonData).to.have.property('messageid').that.is.a('number');",
+                  "    pm.expect(jsonData).to.have.property('name').that.is.a('string').and.not.empty;",
+                  "    pm.expect(jsonData).to.have.property('email').that.is.a('string').and.not.empty;",
+                  "    pm.expect(jsonData).to.have.property('phone').that.is.a('string').and.not.empty;",
+                  "    pm.expect(jsonData).to.have.property('subject').that.is.a('string').and.not.empty;",
+                  "    pm.expect(jsonData).to.have.property('description').that.is.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('Les valeurs correspondent aux données envoyées lors de la création', function () {",
+                  "    pm.expect(jsonData.name).to.eql(pm.environment.get('msg_name'));",
+                  "    pm.expect(jsonData.email).to.eql(pm.environment.get('msg_email'));",
+                  "    pm.expect(jsonData.phone).to.eql(pm.environment.get('msg_phone'));",
+                  "    pm.expect(jsonData.subject).to.eql(pm.environment.get('msg_subject'));",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/message/{{message_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "message",
+                "{{message_id}}"
+              ]
+            },
+            "description": "Lecture du message par son ID dynamique. Vérifie l'intégrité des données."
+          },
+          "response": []
+        },
+        {
+          "name": "PUT - Marquer le message comme lu",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== MARQUAGE MESSAGE COMME LU =====",
+                  "",
+                  "pm.test('Statut HTTP 202 Accepted', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "// Vérification croisée : le count non-lu doit avoir diminué",
+                  "const baseUrl = pm.variables.replaceIn('{{base_url}}');",
+                  "const countUrl = baseUrl.replace(/\\/+$/, '') + '/message/count';",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: countUrl,",
+                  "    method: 'GET',",
+                  "    header: {",
+                  "        'Cookie': 'token=' + pm.environment.get('auth_token')",
+                  "    }",
+                  "}, function (err, res) {",
+                  "    pm.test('Vérification post-read : GET /message/count retourne 200', function () {",
+                  "        pm.expect(err).to.equal(null);",
+                  "        pm.expect(res.code).to.eql(200);",
+                  "    });",
+                  "",
+                  "    if (!err && res.code === 200) {",
+                  "        const countData = res.json();",
+                  "        const countBefore = parseInt(pm.environment.get('msg_unread_count_before'));",
+                  "",
+                  "        pm.test('Le compteur non-lu a diminué après marquage comme lu', function () {",
+                  "            pm.expect(countData.count).to.be.below(countBefore);",
+                  "        });",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/message/{{message_id}}/read",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "message",
+                "{{message_id}}",
+                "read"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Message avec champs vides (Negative)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== TEST NÉGATIF : MESSAGE AVEC CHAMPS VIDES =====",
+                  "",
+                  "pm.test('L\\'API refuse un message avec des champs vides (attend 400-422)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 422, 500]);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    console.warn('⚠️ BUG DÉTECTÉ : L\\'API accepte un message avec tous les champs vides');",
+                  "}",
+                  "",
+                  "// Valider la structure de la réponse d'erreur si 4xx",
+                  "if (pm.response.code >= 400 && pm.response.code < 500) {",
+                  "    try {",
+                  "        const errorData = pm.response.json();",
+                  "        pm.test('La réponse d\\'erreur est structurée (contient error ou fieldErrors)', function () {",
+                  "            const hasError = errorData.hasOwnProperty('error') || ",
+                  "                             errorData.hasOwnProperty('fieldErrors') ||",
+                  "                             errorData.hasOwnProperty('errors');",
+                  "            pm.expect(hasError).to.be.true;",
+                  "        });",
+                  "    } catch(e) {",
+                  "        // Body non-JSON, acceptable pour une erreur",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"\",\n    \"email\": \"\",\n    \"phone\": \"\",\n    \"subject\": \"\",\n    \"description\": \"\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/message/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "message",
+                ""
+              ]
+            },
+            "description": "Test négatif : tous les champs du message sont vides. L'API doit valider et refuser."
+          },
+          "response": []
+        },
+        {
+          "name": "POST - Message avec email invalide (Negative)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== TEST NÉGATIF : EMAIL INVALIDE =====",
+                  "",
+                  "pm.test('L\\'API refuse un message avec un email invalide', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 422, 500]);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    console.warn('⚠️ BUG DÉTECTÉ : L\\'API accepte un email au format invalide (pas-un-email)');",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Test Email Invalide\",\n    \"email\": \"pas-un-email\",\n    \"phone\": \"0612345678\",\n    \"subject\": \"Test validation email\",\n    \"description\": \"Ce message utilise un format email invalide pour tester la validation côté serveur de l'API message.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/message/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "message",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET - Lire un message inexistant (Negative)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== TEST NÉGATIF : MESSAGE INEXISTANT =====",
+                  "",
+                  "pm.test('L\\'API retourne 404 ou erreur pour un ID inexistant', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([404, 500]);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    console.warn('⚠️ BUG DÉTECTÉ : L\\'API retourne 200 pour un message avec ID 999999 (inexistant)');",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{auth_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/message/999999",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "message",
+                "999999"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Test du microservice Message : envoi d'un message client, lecture admin, nettoyage."
+    },
+    {
+      "name": "05 - Branding & Informations",
+      "item": [
+        {
+          "name": "GET - Récupérer les infos Branding",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== BRANDING INFO =====",
+                  "",
+                  "pm.test('Statut HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 2000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+                  "});",
+                  "",
+                  "const jsonData = pm.response.json();",
+                  "",
+                  "pm.test('Validation du schéma JSON Branding', function () {",
+                  "    pm.expect(jsonData).to.have.property('name');",
+                  "    pm.expect(jsonData).to.have.property('map');",
+                  "    pm.expect(jsonData.map).to.have.property('latitude');",
+                  "    pm.expect(jsonData.map).to.have.property('longitude');",
+                  "    pm.expect(jsonData).to.have.property('contact');",
+                  "    pm.expect(jsonData.contact).to.have.property('name');",
+                  "    pm.expect(jsonData.contact).to.have.property('phone');",
+                  "    pm.expect(jsonData.contact).to.have.property('email');",
+                  "});",
+                  "",
+                  "pm.test('Les coordonnées GPS sont des nombres valides', function () {",
+                  "    pm.expect(jsonData.map.latitude).to.be.a('number');",
+                  "    pm.expect(jsonData.map.longitude).to.be.a('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/branding/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "branding",
+                ""
+              ]
+            },
+            "description": "Récupère les informations publiques de l'établissement (nom, localisation, contact)."
+          },
+          "response": []
+        }
+      ],
+      "description": "Test du microservice Branding : récupération et validation des informations de l'établissement."
+    },
+    {
+      "name": "06 - Nettoyage (Teardown)",
+      "item": [
+        {
+          "name": "DELETE - Supprimer le booking de test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== NETTOYAGE : SUPPRESSION BOOKING =====",
+                  "",
+                  "pm.test('Suppression booking réussie (202 Accepted)', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// Vérification post-suppression : le booking ne doit plus exister",
+                  "const baseUrl = pm.variables.replaceIn('{{base_url}}');",
+                  "const bookingId = pm.environment.get('booking_id');",
+                  "const verifyUrl = baseUrl.replace(/\\/+$/, '') + '/booking/?roomid=' + pm.environment.get('room_id');",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: verifyUrl,",
+                  "    method: 'GET',",
+                  "    header: {",
+                  "        'Cookie': 'token=' + pm.environment.get('auth_token')",
+                  "    }",
+                  "}, function (err, res) {",
+                  "    pm.test('Vérification post-delete : le booking ' + bookingId + ' est absent de la liste', function () {",
+                  "        pm.expect(err).to.equal(null);",
+                  "        pm.expect(res.code).to.eql(200);",
+                  "        const data = res.json();",
+                  "        const found = data.bookings.some(b => b.bookingid === parseInt(bookingId));",
+                  "        pm.expect(found, 'Booking ID ' + bookingId + ' encore présent après suppression').to.be.false;",
+                  "    });",
+                  "});",
+                  "",
+                  "console.log('Booking ID ' + bookingId + ' supprimé.');"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/booking/{{booking_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "{{booking_id}}"
+              ]
+            },
+            "description": "Suppression de la réservation créée pendant les tests. Utilise le booking_id et le token chaînés dynamiquement."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE - Supprimer le message de test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== NETTOYAGE : SUPPRESSION MESSAGE =====",
+                  "",
+                  "pm.test('Suppression message réussie (202 Accepted)', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// Vérification post-suppression : le message ne doit plus être accessible",
+                  "const baseUrl = pm.variables.replaceIn('{{base_url}}');",
+                  "const msgId = pm.environment.get('message_id');",
+                  "const verifyUrl = baseUrl.replace(/\\/+$/, '') + '/message/' + msgId;",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: verifyUrl,",
+                  "    method: 'GET',",
+                  "    header: {",
+                  "        'Cookie': 'token=' + pm.environment.get('auth_token')",
+                  "    }",
+                  "}, function (err, res) {",
+                  "    pm.test('Vérification post-delete : GET /message/' + msgId + ' retourne 404 ou erreur', function () {",
+                  "        pm.expect(res.code).to.be.oneOf([404, 500]);",
+                  "    });",
+                  "});",
+                  "",
+                  "console.log('Message ID ' + msgId + ' supprimé.');"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/message/{{message_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "message",
+                "{{message_id}}"
+              ]
+            },
+            "description": "Suppression du message de test. Nettoyage des données."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE - Supprimer la chambre de test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== NETTOYAGE : SUPPRESSION ROOM =====",
+                  "",
+                  "pm.test('Suppression chambre réussie (202 Accepted)', function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "pm.test('Temps de réponse < 3000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "// Vérification post-suppression : la chambre ne doit plus exister",
+                  "const baseUrl = pm.variables.replaceIn('{{base_url}}');",
+                  "const roomId = pm.environment.get('room_id');",
+                  "const verifyUrl = baseUrl.replace(/\\/+$/, '') + '/room/' + roomId;",
+                  "",
+                  "pm.sendRequest({",
+                  "    url: verifyUrl,",
+                  "    method: 'GET',",
+                  "    header: {}",
+                  "}, function (err, res) {",
+                  "    pm.test('Vérification post-delete : GET /room/' + roomId + ' retourne 404 ou 500', function () {",
+                  "        pm.expect(res.code).to.be.oneOf([404, 500]);",
+                  "    });",
+                  "});",
+                  "",
+                  "// Nettoyage des variables d'environnement",
+                  "pm.environment.unset('room_id');",
+                  "pm.environment.unset('booking_id');",
+                  "pm.environment.unset('message_id');",
+                  "pm.environment.unset('dynamic_room_number');",
+                  "pm.environment.unset('test_timestamp');",
+                  "pm.environment.unset('existing_room_id');",
+                  "pm.environment.unset('guest_firstname');",
+                  "pm.environment.unset('guest_lastname');",
+                  "pm.environment.unset('guest_email');",
+                  "pm.environment.unset('checkin_date');",
+                  "pm.environment.unset('checkout_date');",
+                  "pm.environment.unset('msg_name');",
+                  "pm.environment.unset('msg_email');",
+                  "pm.environment.unset('msg_phone');",
+                  "pm.environment.unset('msg_subject');",
+                  "pm.environment.unset('msg_description');",
+                  "pm.environment.unset('msg_unread_count_before');",
+                  "",
+                  "console.log('Chambre ID ' + roomId + ' supprimée. Toutes les variables de test nettoyées.');"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Cookie",
+                "value": "token={{auth_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/room/{{room_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "room",
+                "{{room_id}}"
+              ]
+            },
+            "description": "Suppression de la chambre de test. Dernière étape de teardown, nettoie aussi les variables d'environnement temporaires."
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE - Booking sans authentification (Negative)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ===== TEST SÉCURITÉ : DELETE SANS AUTH =====",
+                  "",
+                  "pm.test('Statut HTTP 403 Forbidden sans authentification', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "});",
+                  "",
+                  "pm.test('Aucune suppression n\\'a été effectuée', function () {",
+                  "    // Si on reçoit 403, la donnée n'a pas été touchée",
+                  "    pm.expect(pm.response.code).to.not.eql(202);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/booking/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "booking",
+                "1"
+              ]
+            },
+            "description": "Test de sécurité : tentative de suppression sans cookie d'authentification. Doit être bloqué."
+          },
+          "response": []
+        }
+      ],
+      "description": "Suppression des données de test pour garantir l'indépendance et la répétabilité des tests."
+    }
+  ]
+}
