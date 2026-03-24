@@ -77,8 +77,7 @@ class HomePage(BasePage):
         return self.is_present(self.CONTACT_VALIDATION_ERRORS)
 
     def click_book_first_room(self) -> None:
-        link = self.wait_for_clickable(self.FIRST_BOOK_BUTTON)
-        self.driver.get(link.get_attribute("href"))
+        self.click(self.FIRST_BOOK_BUTTON)
         self.wait_for_visible(self.BOOKING_CALENDAR)
 
     def fill_booking_form(

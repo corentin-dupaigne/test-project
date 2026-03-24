@@ -25,7 +25,7 @@ class TestAdminLoginHappyPath:
         assert dashboard.is_logged_in()
         dashboard.logout()
 
-        login_page_again = AdminLoginPage(driver)
+        login_page_again = AdminLoginPage(driver).open()
         assert login_page_again.is_visible(AdminLoginPage.USERNAME_INPUT), (
             "Username field should be visible after logging out."
         )
