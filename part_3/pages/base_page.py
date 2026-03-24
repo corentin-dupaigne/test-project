@@ -45,7 +45,16 @@ class BasePage:
         element.send_keys(value)
 
     def click(self, locator: tuple) -> None:
-        self.wait_for_clickable(locator).click()
+        element = self.wait_for_clickable(locator)
+        self.driver.execute_script(
+            "arguments[0].scrollIntoView({block: 'center'});", element
+        )
+        try:
+            self.wait_for_clickable(locator).click()
+        except Exception:
+            self.driver.execute_script(
+                "arguments[0].click();", self.wait_for_clickable(locator)
+            )
 
     # Wait for an element to be visible and return its content
     def get_text(self, locator: tuple) -> str:

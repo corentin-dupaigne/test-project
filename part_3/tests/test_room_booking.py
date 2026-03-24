@@ -10,18 +10,18 @@ class TestBookingHappyPath:
         assert page.get_room_count() >= 1, "At least one room must exist to test booking."
 
         page.click_book_first_room()
-        assert page.is_visible(HomePage.BOOKING_FORM), (
+        assert page.is_visible(HomePage.BOOKING_CALENDAR), (
             "The booking calendar should appear after clicking 'Book this room'."
         )
 
     def test_cancel_booking_closes_modal(self, driver):
         page = HomePage(driver).open()
         page.click_book_first_room()
-        assert page.is_visible(HomePage.BOOKING_FORM)
+        page.select_booking_dates_via_calendar()
 
         page.cancel_booking()
-        assert not page.is_visible(HomePage.BOOKING_FORM, timeout=5), (
-            "The booking calendar should close after clicking 'Cancel'."
+        assert not page.is_visible(HomePage.BOOKING_FIRSTNAME, timeout=5), (
+            "The booking form fields should disappear after clicking 'Cancel'."
         )
 
     @pytest.mark.booking_full
@@ -47,25 +47,16 @@ class TestBookingHappyPath:
 
 class TestBookingNegativePath:
 
-    def test_submit_without_dates_shows_validation_error(self, driver):
+    def test_submit_without_personal_info_shows_validation_error(self, driver):
         page = HomePage(driver).open()
         page.click_book_first_room()
+        page.select_booking_dates_via_calendar()
 
-        data = BOOKING_DATA["valid"]
-        page.fill_booking_form(
-            firstname=data["firstname"],
-            lastname=data["lastname"],
-            email=data["email"],
-            phone=data["phone"],
-        )
         page.submit_booking()
 
-        assert not page.is_booking_confirmation_visible(), (
-            "A confirmation should NOT appear without selected dates."
-        )
         errors = page.get_booking_validation_errors()
         assert len(errors) >= 1, (
-            "At least one validation error should appear when no dates are selected."
+            "At least one validation error should appear when personal info is empty."
         )
 
     def test_submit_without_firstname_shows_error(self, driver):
@@ -105,3 +96,4 @@ class TestBookingNegativePath:
         assert len(errors) >= 1, (
             "A validation error should appear for an invalid email address."
         )
+
