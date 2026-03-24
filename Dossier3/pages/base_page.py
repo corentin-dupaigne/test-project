@@ -3,6 +3,10 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import (
+    ElementClickInterceptedException,
+    StaleElementReferenceException,
+)
 
 
 DEFAULT_TIMEOUT = 15
@@ -46,9 +50,15 @@ class BasePage:
 
     def click(self, locator: tuple) -> None:
         element = self.wait_for_clickable(locator)
-        self.driver.execute_script(
-            "arguments[0].scrollIntoView({block: 'center'});", element
+        in_viewport = self.driver.execute_script(
+            "var r = arguments[0].getBoundingClientRect();"
+            "return r.top >= 0 && r.bottom <= window.innerHeight;",
+            element,
         )
+        if not in_viewport:
+            self.driver.execute_script(
+                "arguments[0].scrollIntoView({block: 'center'});", element
+            )
         try:
             self.wait_for_clickable(locator).click()
         except Exception:

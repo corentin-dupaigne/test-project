@@ -8,7 +8,7 @@ Suite de tests Selenium pour la plateforme **Restful-Booker**
 ## Architecture — Page Object Model (POM)
 
 ```
-part_3/
+Dossier3/
 ├── conftest.py                  # Fixtures pytest (WebDriver)
 ├── pytest.ini                   # Configuration pytest + marqueurs
 ├── requirements.txt             # Dépendances Python
@@ -45,29 +45,15 @@ part_3/
 
 ---
 
-## Prérequis
-
-- Python 3.11+
-- Google Chrome (ou Firefox) installé
-
----
-
 ## Installation de l'environnement virtuel
 
 ```bash
-# 1. Se placer dans le dossier du projet
 cd Dossier3
 
-# 2. Créer l'environnement virtuel
-python -m venv .venv
+python -m venv venv
 
-# 3. Activer l'environnement
-# Linux / macOS :
-source .venv/bin/activate
-# Windows (PowerShell) :
-# .venv\Scripts\Activate.ps1
+source venv/bin/activate
 
-# 4. Installer les dépendances
 pip install -r requirements.txt
 ```
 
@@ -80,14 +66,9 @@ pip install -r requirements.txt
 pytest
 ```
 
-### En mode headless (sans fenêtre graphique, idéal CI)
+### En mode headless (sans fenêtre graphique)
 ```bash
 HEADLESS=1 pytest
-```
-
-### Avec Firefox
-```bash
-BROWSER=firefox pytest
 ```
 
 ### Un seul fichier de test
@@ -95,24 +76,5 @@ BROWSER=firefox pytest
 pytest tests/test_admin_login.py
 ```
 
-### Tests nécessitant le drag-and-drop calendrier (marqueur `booking_full`)
-```bash
-pytest -m booking_full
-```
-
-### Exclure les tests `booking_full`
-```bash
-pytest -m "not booking_full"
-```
-
 ### Générer le rapport HTML
-Le rapport est automatiquement produit dans `reports/report.html` grâce à `pytest-html`.
-
----
-
-## Variables d'environnement
-
-| Variable | Valeur par défaut | Description |
-|---|---|---|
-| `BROWSER` | `chrome` | Navigateur cible (`chrome` ou `firefox`) |
-| `HEADLESS` | `0` | `1` pour activer le mode sans interface graphique |
+Le rapport est automatiquement produit dans `reports/report.html`
