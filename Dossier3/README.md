@@ -56,7 +56,7 @@ part_3/
 
 ```bash
 # 1. Se placer dans le dossier du projet
-cd part_3
+cd Dossier3
 
 # 2. Créer l'environnement virtuel
 python -m venv .venv
