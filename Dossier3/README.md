@@ -66,7 +66,7 @@ pip install -r requirements.txt
 pytest
 ```
 
-### En mode headless (sans fenêtre graphique)
+### En mode headless
 ```bash
 HEADLESS=1 pytest
 ```
