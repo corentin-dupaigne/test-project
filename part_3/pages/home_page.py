@@ -1,4 +1,5 @@
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
 from pages.base_page import BasePage
 
 BASE_URL = "https://automationintesting.online/"
@@ -6,13 +7,13 @@ BASE_URL = "https://automationintesting.online/"
 
 class HomePage(BasePage):
     LOGO = (By.CSS_SELECTOR, "div.hotel-logoUrl img")
-    ADMIN_PANEL_LINK = (By.LINK_TEXT, "Admin panel")
 
     ROOM_CARDS = (By.CSS_SELECTOR, "div.room-card")
     FIRST_BOOK_BUTTON = (By.XPATH, "(//a[contains(text(),'Book now')])[1]")
 
-    BOOKING_CALENDAR = (By.CSS_SELECTOR, "div.room-booking-form")
     BOOKING_FORM = (By.CSS_SELECTOR, "div.room-booking-form")
+    CALENDAR_DAYS = (By.CSS_SELECTOR, "div.rbc-day-bg:not(.rbc-off-range-bg)")
+    CALENDAR_NEXT_MONTH = (By.CSS_SELECTOR, "button.rbc-btn-group button:last-child")
     BOOKING_FIRSTNAME = (By.CSS_SELECTOR, "input[name='firstname']")
     BOOKING_LASTNAME = (By.CSS_SELECTOR, "input[name='lastname']")
     BOOKING_EMAIL = (By.CSS_SELECTOR, "input[name='email']")
@@ -90,7 +91,7 @@ class HomePage(BasePage):
 
     def cancel_booking(self) -> None:
         self.click(self.BOOKING_CANCEL)
-        self.wait_for_invisible(self.BOOKING_CALENDAR)
+        self.wait_for_invisible(self.BOOKING_FORM)
 
     def is_booking_confirmation_visible(self) -> bool:
         return self.is_visible(self.BOOKING_CONFIRMATION)
@@ -100,12 +101,14 @@ class HomePage(BasePage):
         return [el.text for el in elements]
 
     def select_booking_dates_via_calendar(self) -> None:
-        # The booking flow has changed: dates are now selected via the Availability
-        # section on the home page (dateWrapper inputs) before clicking "Book now".
-        # The reservation page (/reservation/{roomid}) receives dates via URL params.
-        # This method is kept as a no-op because the booking tests navigate to the
-        # reservation page which pre-populates dates from the availability search.
         self.wait_for_visible(self.BOOKING_FORM)
+        days = self.wait_for_elements(self.CALENDAR_DAYS)
+
+        start_day = days[10]
+        end_day = days[12]
+
+        actions = ActionChains(self.driver)
+        actions.click_and_hold(start_day).pause(0.3).move_to_element(end_day).release().perform()
 
     def get_room_count(self) -> int:
         rooms = self.wait_for_elements(self.ROOM_CARDS)

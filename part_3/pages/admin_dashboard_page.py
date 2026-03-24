@@ -6,9 +6,6 @@ from pages.base_page import BasePage
 class AdminDashboardPage(BasePage):
 
     LOGOUT_BUTTON = (By.CSS_SELECTOR, "button.btn-outline-danger")
-    NAV_ROOMS = (By.LINK_TEXT, "Rooms")
-    NAV_REPORT = (By.LINK_TEXT, "Report")
-    NAV_BRANDING = (By.LINK_TEXT, "Branding")
 
     ROOM_ROWS = (By.CSS_SELECTOR, "div[data-testid='roomlisting']")
     ROOM_FORM_NAME = (By.CSS_SELECTOR, "input#roomName")
@@ -24,17 +21,6 @@ class AdminDashboardPage(BasePage):
     AMENITY_SAFE = (By.CSS_SELECTOR, "input#safeCheckbox")
     AMENITY_VIEWS = (By.CSS_SELECTOR, "input#viewsCheckbox")
 
-    DELETE_ROOM_BTN_TEMPLATE = (
-        By.XPATH,
-        "//div[@data-testid='roomlisting']"
-        "[.//*[@id='roomName{name}']]"
-        "//span[contains(@class,'roomDelete')]",
-    )
-
-    # Success / error flash
-    SUCCESS_ALERT = (By.CSS_SELECTOR, "div.alert-success")
-    DANGER_ALERT = (By.CSS_SELECTOR, "div.alert-danger")
-
     def is_logged_in(self) -> bool:
         return self.is_visible(self.LOGOUT_BUTTON)
 
@@ -49,15 +35,7 @@ class AdminDashboardPage(BasePage):
         price: str,
         features: list[str] | None = None,
     ) -> None:
-        """
-        Fill in the room-creation form and click 'Create'.
 
-        :param name:        Room number / name.
-        :param room_type:   One of Single | Double | Twin | Family | Suite.
-        :param accessible:  Whether the room is wheelchair-accessible.
-        :param price:       Nightly price as a string.
-        :param features:    Optional list of amenity names, e.g. ['WiFi', 'TV'].
-        """
         self.fill(self.ROOM_FORM_NAME, name)
 
         Select(self.wait_for_visible(self.ROOM_FORM_TYPE)).select_by_visible_text(room_type)
@@ -86,7 +64,6 @@ class AdminDashboardPage(BasePage):
         self.click(self.ROOM_FORM_CREATE)
 
     def delete_room(self, room_name: str) -> None:
-        """Click the trash icon for the room whose name equals *room_name*."""
         locator = (
             By.XPATH,
             f"//div[@data-testid='roomlisting']"
@@ -96,7 +73,6 @@ class AdminDashboardPage(BasePage):
         self.click(locator)
 
     def get_room_names(self) -> list[str]:
-        """Return the list of room names currently displayed."""
         rows = self.wait_for_elements(self.ROOM_ROWS)
         names = []
         for row in rows:

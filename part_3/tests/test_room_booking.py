@@ -10,17 +10,17 @@ class TestBookingHappyPath:
         assert page.get_room_count() >= 1, "At least one room must exist to test booking."
 
         page.click_book_first_room()
-        assert page.is_visible(HomePage.BOOKING_CALENDAR), (
+        assert page.is_visible(HomePage.BOOKING_FORM), (
             "The booking calendar should appear after clicking 'Book this room'."
         )
 
     def test_cancel_booking_closes_modal(self, driver):
         page = HomePage(driver).open()
         page.click_book_first_room()
-        assert page.is_visible(HomePage.BOOKING_CALENDAR)
+        assert page.is_visible(HomePage.BOOKING_FORM)
 
         page.cancel_booking()
-        assert not page.is_visible(HomePage.BOOKING_CALENDAR, timeout=5), (
+        assert not page.is_visible(HomePage.BOOKING_FORM, timeout=5), (
             "The booking calendar should close after clicking 'Cancel'."
         )
 
