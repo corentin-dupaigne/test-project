@@ -34,17 +34,6 @@ Dossier3/
 └── reports/                     # Généré automatiquement par pytest-html
 ```
 
-### Principes respectés
-
-| Exigence | Implémentation |
-|---|---|
-| Pattern POM | `pages/` contient localisateurs + actions ; `tests/` contient uniquement les assertions |
-| Attentes explicites uniquement | `BasePage` expose `wait_for_visible`, `wait_for_clickable`, etc. — `implicitly_wait(0)` forcé |
-| Aucune donnée en dur dans les méthodes | Toutes les valeurs de test sont dans `data/test_data.py` |
-| Happy Path + Negative Path | Chaque module de test couvre les deux scénarios |
-
----
-
 ## Installation de l'environnement virtuel
 
 ```bash
